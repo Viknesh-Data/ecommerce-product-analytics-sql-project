@@ -39,8 +39,9 @@ This project answers:
 
 * Source: E-commerce clickstream dataset
 * Size: ~100M+ events
-* Data includes:
+Due to the high volume of event-level data, a stratified sampling approach was implemented to create a representative dataset while preserving event distribution (view, cart, purchase). This ensured efficient query performance without compromising analytical accuracy.
 
+* Data includes:
   * User sessions
   * Product views
   * Cart events
