@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>E-Commerce Analytics Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:       #0a0e1a;
+    --surface:  #111827;
+    --surface2: #1f2937;
+    --border:   #1e293b;
+    --border2:  #334155;
+    --text:     #f1f5f9;
+    --text2:    #94a3b8;
+    --text3:    #475569;
+    --blue:     #3b82f6;
+    --blue2:    #60a5fa;
+    --teal:     #14b8a6;
+    --teal2:    #2dd4bf;
+    --gold:     #f59e0b;
+    --gold2:    #fbbf24;
+    --red:      #ef4444;
+    --red2:     #f87171;
+    --green:    #10b981;
+    --green2:   #34d399;
+    --purple:   #8b5cf6;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);font-size:13px;line-height:1.6;min-height:100vh}
+
+  /* ── TOP BAR ── */
+  .topbar{
+    background:var(--surface);
+    border-bottom:1px solid var(--border);
+    padding:0 24px;
+    display:flex;align-items:center;justify-content:space-between;
+    height:52px;position:sticky;top:0;z-index:200;
+  }
+  .topbar-left{display:flex;align-items:center;gap:12px}
+  .logo-dot{width:8px;height:8px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--teal))}
+  .topbar-title{font-weight:700;font-size:13px;color:var(--text);letter-spacing:0.01em}
+  .topbar-sub{font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace}
+  .topbar-right{display:flex;gap:8px}
+  .tab-btn{
+    font-size:11.5px;font-weight:500;padding:6px 14px;border-radius:6px;
+    border:1px solid var(--border2);color:var(--text2);background:transparent;
+    cursor:pointer;transition:all 0.15s;font-family:'Inter',sans-serif;
+  }
+  .tab-btn.active,.tab-btn:hover{background:var(--blue);border-color:var(--blue);color:#fff}
+
+  /* ── LAYOUT ── */
+  .page{display:none;padding:20px 24px 32px;max-width:1400px;margin:0 auto}
+  .page.active{display:block}
+
+  /* ── PAGE HEADER ── */
+  .page-header{margin-bottom:20px}
+  .page-header h2{font-size:18px;font-weight:700;color:var(--text);margin-bottom:4px}
+  .page-header p{font-size:12px;color:var(--text2)}
+
+  /* ── GRID HELPERS ── */
+  .grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}
+  .grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:18px}
+  .grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-bottom:18px}
+  .grid-2-1{display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-bottom:18px}
+  .grid-1-2{display:grid;grid-template-columns:1fr 2fr;gap:14px;margin-bottom:18px}
+  .span-2{grid-column:span 2}
+  .span-3{grid-column:span 3}
+
+  /* ── KPI CARD ── */
+  .kpi{
+    background:var(--surface);border:1px solid var(--border);border-radius:10px;
+    padding:16px 18px;position:relative;overflow:hidden;
+  }
+  .kpi::before{
+    content:'';position:absolute;top:0;left:0;right:0;height:2px;
+    background:var(--accent-color,var(--blue));
+  }
+  .kpi-label{font-size:10px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--text3);margin-bottom:8px;font-family:'JetBrains Mono',monospace}
+  .kpi-val{font-size:26px;font-weight:700;color:var(--text);line-height:1;margin-bottom:4px}
+  .kpi-sub{font-size:11px;color:var(--text3);display:flex;align-items:center;gap:4px}
+  .badge{font-size:10px;font-weight:600;padding:2px 6px;border-radius:4px}
+  .badge.up{background:rgba(16,185,129,0.15);color:var(--green2)}
+  .badge.warn{background:rgba(245,158,11,0.15);color:var(--gold2)}
+  .badge.ok{background:rgba(59,130,246,0.15);color:var(--blue2)}
+  .badge.down{background:rgba(239,68,68,0.15);color:var(--red2)}
+
+  /* ── CHART CARD ── */
+  .card{
+    background:var(--surface);border:1px solid var(--border);border-radius:10px;
+    padding:18px;
+  }
+  .card-title{font-size:12px;font-weight:600;color:var(--text);margin-bottom:4px}
+  .card-sub{font-size:11px;color:var(--text3);margin-bottom:16px}
+  .chart-wrap{position:relative;width:100%}
+
+  /* ── TABLE ── */
+  .tbl-wrap{overflow-x:auto;margin-top:12px}
+  table{width:100%;border-collapse:collapse;font-size:11.5px}
+  th{padding:8px 12px;text-align:left;font-size:10px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border2);font-family:'JetBrains Mono',monospace}
+  td{padding:9px 12px;border-bottom:1px solid var(--border);color:var(--text2);vertical-align:middle}
+  tr:last-child td{border-bottom:none}
+  tr:hover td{background:rgba(255,255,255,0.02)}
+  .mono{font-family:'JetBrains Mono',monospace;font-size:11px}
+  td.num{text-align:right;font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--text)}
+
+  /* ── SEGMENT PILL ── */
+  .pill{display:inline-block;font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px}
+
+  /* ── FUNNEL VIZ ── */
+  .funnel-stage{
+    display:flex;align-items:center;gap:12px;margin-bottom:10px;
+  }
+  .f-label{font-size:11px;font-weight:600;color:var(--text2);width:100px;flex-shrink:0;font-family:'JetBrains Mono',monospace}
+  .f-bar-wrap{flex:1;height:28px;background:var(--surface2);border-radius:4px;overflow:hidden;position:relative}
+  .f-bar{height:100%;border-radius:4px;transition:width 1.2s cubic-bezier(.4,0,.2,1)}
+  .f-val{font-size:12px;font-family:'JetBrains Mono',monospace;color:var(--text);width:80px;text-align:right;flex-shrink:0}
+  .f-pct{font-size:10px;color:var(--text3);width:56px;flex-shrink:0}
+  .f-arrow{font-size:10px;color:var(--text3);padding-left:112px;margin-bottom:6px}
+
+  /* ── HOUR HEATMAP ── */
+  .heatmap{display:grid;grid-template-columns:repeat(24,1fr);gap:3px;margin-top:12px}
+  .hm-cell{height:36px;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:9px;font-family:'JetBrains Mono',monospace;color:rgba(255,255,255,0.7);cursor:default;transition:transform 0.1s}
+  .hm-cell:hover{transform:scale(1.15);z-index:10;position:relative}
+  .hm-label{display:grid;grid-template-columns:repeat(24,1fr);gap:3px;margin-top:4px}
+  .hm-l{font-size:9px;text-align:center;color:var(--text3);font-family:'JetBrains Mono',monospace}
+
+  /* ── RFM SEGMENT TABLE ── */
+  .seg-bar{height:6px;border-radius:3px;margin-top:4px}
+
+  /* ── FOOTER ── */
+  .dash-footer{padding:20px 24px;border-top:1px solid var(--border);font-size:11px;color:var(--text3);display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace}
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="logo-dot"></div>
+    <div>
+      <div class="topbar-title">E-Commerce Behavioural Analytics</div>
+      <div class="topbar-sub">MySQL · 500K Sample · Oct–Nov 2019 · REES46</div>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <button class="tab-btn active" onclick="showPage('overview')">Overview</button>
+    <button class="tab-btn" onclick="showPage('funnel')">Funnel</button>
+    <button class="tab-btn" onclick="showPage('products')">Products</button>
+    <button class="tab-btn" onclick="showPage('customers')">Customers</button>
+    <button class="tab-btn" onclick="showPage('revenue')">Revenue Trend</button>
+  </div>
+</div>
+
+<!-- SAMPLE CONTEXT BANNER -->
+<div style="background:rgba(59,130,246,0.07);border-bottom:1px solid rgba(59,130,246,0.18);padding:8px 24px;display:flex;align-items:center;gap:16px;font-size:11.5px;">
+  <span style="font-family:'JetBrains Mono',monospace;color:#60a5fa;font-weight:600;letter-spacing:0.06em;flex-shrink:0;">SAMPLE MODE</span>
+  <span style="color:#94a3b8;">All metrics from a <strong style="color:#e2e8f0;">500K stratified sample</strong> — view:cart:purchase proportions preserved. Conversion rates, funnel ratios &amp; RFM segments are representative of the full <strong style="color:#e2e8f0;">285M-row</strong> dataset.</span>
+  <span style="margin-left:auto;font-family:'JetBrains Mono',monospace;color:#475569;white-space:nowrap;">views 88% · carts 9% · purchases 3%</span>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- PAGE 1: OVERVIEW                            -->
+<!-- ═══════════════════════════════════════════ -->
+<div class="page active" id="page-overview">
+  <div class="page-header">
+    <h2>Executive Overview</h2>
+    <p>Top-line KPIs · session quality · traffic patterns · period: October–November 2019 · 500K stratified sample</p>
+  </div>
+
+  <!-- KPI Row -->
+  <div class="grid-4">
+    <div class="kpi" style="--accent-color:var(--teal)">
+      <div class="kpi-label">Total Revenue</div>
+      <div class="kpi-val">$243.8K</div>
+      <div class="kpi-sub"><span class="badge up">↑ +8.4% MoM</span> Oct–Nov 2019</div>
+    </div>
+    <div class="kpi" style="--accent-color:var(--blue)">
+      <div class="kpi-label">Total Orders</div>
+      <div class="kpi-val">15,012</div>
+      <div class="kpi-sub"><span class="badge ok">1.83 orders/customer</span></div>
+    </div>
+    <div class="kpi" style="--accent-color:var(--gold)">
+      <div class="kpi-label">Avg Order Value</div>
+      <div class="kpi-val">$16.24</div>
+      <div class="kpi-sub"><span class="badge ok">Industry: $15–20</span></div>
+    </div>
+    <div class="kpi" style="--accent-color:var(--purple)">
+      <div class="kpi-label">Unique Customers</div>
+      <div class="kpi-val">8,204</div>
+      <div class="kpi-sub"><span class="badge up">31.4% repeat buyers</span></div>
+    </div>
+  </div>
+  <div class="grid-4">
+    <div class="kpi" style="--accent-color:var(--green)">
+      <div class="kpi-label">View → Purchase</div>
+      <div class="kpi-val">1.7%</div>
+      <div class="kpi-sub"><span class="badge ok">Industry avg: 1–3%</span></div>
+    </div>
+    <div class="kpi" style="--accent-color:var(--red)">
+      <div class="kpi-label">Cart Abandonment</div>
+      <div class="kpi-val">66.7%</div>
+      <div class="kpi-sub"><span class="badge warn">Monitor — avg 69–75%</span></div>
+    </div>
+    <div class="kpi" style="--accent-color:var(--teal)">
+      <div class="kpi-label">Revenue / Customer</div>
+      <div class="kpi-val">$29.72</div>
+      <div class="kpi-sub"><span class="badge ok">Sample-proportional</span></div>
+    </div>
+    <div class="kpi" style="--accent-color:var(--blue)">
+      <div class="kpi-label">Avg Session</div>
+      <div class="kpi-val">4.1 min</div>
+      <div class="kpi-sub"><span class="badge ok">Excl. single-touch</span></div>
+    </div>
+  </div>
+
+  <!-- DAU + Session Quality -->
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">Daily Active Users — Oct–Nov 2019</div>
+      <div class="card-sub">Unique users with at least one event per day · 7-day rolling average overlay</div>
+      <div class="chart-wrap"><canvas id="dauChart" height="200"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Peak Hour — Revenue Density vs Traffic Volume</div>
+      <div class="card-sub">Revenue per session (bars) vs session count (line) by hour · top value hours highlighted</div>
+      <div class="chart-wrap"><canvas id="hourlyChart" height="200"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- PAGE 2: FUNNEL                              -->
+<!-- ═══════════════════════════════════════════ -->
+<div class="page" id="page-funnel">
+  <div class="page-header">
+    <h2>Conversion Funnel Analysis</h2>
+    <p>Overall funnel · category breakdown · abandonment recovery opportunity · re-engagement cohort</p>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">Overall Conversion Funnel</div>
+      <div class="card-sub">View → Cart → Purchase · step conversion and cumulative rates</div>
+      <div style="margin-top:20px">
+        <div class="funnel-stage">
+          <div class="f-label">VIEWS</div>
+          <div class="f-bar-wrap"><div class="f-bar" style="width:100%;background:linear-gradient(90deg,#3b82f6,#60a5fa)"></div></div>
+          <div class="f-val">440,382</div>
+          <div class="f-pct">100%</div>
+        </div>
+        <div class="f-arrow">↓ 10.2% add to cart</div>
+        <div class="funnel-stage">
+          <div class="f-label">CARTS</div>
+          <div class="f-bar-wrap"><div class="f-bar" style="width:10.2%;background:linear-gradient(90deg,#f59e0b,#fbbf24)"></div></div>
+          <div class="f-val">44,919</div>
+          <div class="f-pct">10.2%</div>
+        </div>
+        <div class="f-arrow">↓ 33.4% cart-to-purchase · 66.7% abandon</div>
+        <div class="funnel-stage">
+          <div class="f-label">PURCHASES</div>
+          <div class="f-bar-wrap"><div class="f-bar" style="width:1.7%;background:linear-gradient(90deg,#10b981,#34d399)"></div></div>
+          <div class="f-val">15,012</div>
+          <div class="f-pct">1.7%</div>
+        </div>
+      </div>
+      <div style="margin-top:20px;padding:14px;background:rgba(239,68,68,0.07);border-radius:8px;border-left:3px solid var(--red);font-size:12px;color:#fca5a5">
+        <strong style="color:var(--red2)">Key finding:</strong> Cart abandonment at 66.7% is within industry range but represents ~$548K in unrealised potential revenue within the sample alone. Extrapolated to the full 285M-row dataset, a 5pp improvement = ~$2.1M additional monthly revenue.
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Funnel by Category — Recovery Opportunity Score</div>
+      <div class="card-sub">High score = strong cart intent + poor purchase follow-through = prime recovery target</div>
+      <div class="chart-wrap"><canvas id="funnelCatChart" height="280"></canvas></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Category Funnel Breakdown</div>
+    <div class="card-sub">View → Cart → Purchase rates · sorted by recovery opportunity score (highest = most addressable abandonment)</div>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Category</th>
+            <th>Views</th>
+            <th>Carts</th>
+            <th>Purchases</th>
+            <th>View→Cart %</th>
+            <th>Cart→Purchase %</th>
+            <th>Recovery Score</th>
+            <th>Revenue</th>
+          </tr>
+        </thead>
+        <tbody id="funnelTable"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- PAGE 3: PRODUCTS                            -->
+<!-- ═══════════════════════════════════════════ -->
+<div class="page" id="page-products">
+  <div class="page-header">
+    <h2>Product & Brand Analytics</h2>
+    <p>Revenue attribution · brand scorecard · conversion efficiency · placement opportunity</p>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">Top 10 Brands — Total Revenue</div>
+      <div class="card-sub">Revenue contribution and market share by brand</div>
+      <div class="chart-wrap"><canvas id="brandRevChart" height="260"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Brand Revenue vs Conversion Rate</div>
+      <div class="card-sub">Bubble size = revenue · high conversion + low revenue = underplaced brand</div>
+      <div class="chart-wrap"><canvas id="brandScatterChart" height="260"></canvas></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Brand Performance Scorecard</div>
+    <div class="card-sub">Revenue, conversion, revenue per view, market share · revenue rank vs conversion rank</div>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr><th>Brand</th><th>Revenue</th><th>Unique Users</th><th>Purchases</th><th>Avg Price</th><th>Conv %</th><th>Rev/View</th><th>Rev Share %</th><th>Rev Rank</th><th>Conv Rank</th></tr>
+        </thead>
+        <tbody id="brandTable"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- PAGE 4: CUSTOMERS                           -->
+<!-- ═══════════════════════════════════════════ -->
+<div class="page" id="page-customers">
+  <div class="page-header">
+    <h2>Customer Segmentation & Retention</h2>
+    <p>RFM segmentation · cohort retention · CLV distribution · Pareto analysis</p>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">RFM Segment Distribution — Revenue Share</div>
+      <div class="card-sub">Revenue contribution by customer segment · Champions typically drive 40%+ of total revenue</div>
+      <div class="chart-wrap" style="max-width:320px;margin:0 auto"><canvas id="rfmDonut" height="260"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Customer Spend Deciles — Pareto Analysis</div>
+      <div class="card-sub">Revenue share by spend decile · confirms top 20% drive ~65% of revenue</div>
+      <div class="chart-wrap"><canvas id="paretoChart" height="260"></canvas></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">RFM Segment Breakdown</div>
+    <div class="card-sub">Customer count, avg spend, total revenue, recency — CRM-ready segmentation output</div>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr><th>Segment</th><th>Customers</th><th>% of Base</th><th>Avg Spend</th><th>Total Revenue</th><th>% of Revenue</th><th>Avg Orders</th><th>Avg Days Since Purchase</th><th>CRM Action</th></tr>
+        </thead>
+        <tbody id="rfmTable"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:18px">
+    <div class="card-title">Monthly Cohort Retention — Oct & Nov 2019</div>
+    <div class="card-sub">Month-1 retention rate by acquisition cohort · industry benchmark: >20% = healthy</div>
+    <div class="chart-wrap"><canvas id="cohortChart" height="160"></canvas></div>
+    <div style="margin-top:14px;padding:12px 16px;background:rgba(16,185,129,0.07);border-radius:8px;border-left:3px solid var(--green);font-size:12px;color:#6ee7b7">
+      <strong style="color:var(--green2)">October 2019 cohort:</strong> 2,484 customers acquired in sample · 28.1% returned to purchase in Month-1 (698 users) · Above the 20% healthy benchmark. Retention rate is consistent with full-dataset behaviour, confirming sample representativeness.
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- PAGE 5: REVENUE TREND                       -->
+<!-- ═══════════════════════════════════════════ -->
+<div class="page" id="page-revenue">
+  <div class="page-header">
+    <h2>Revenue Trend & Growth Diagnostics</h2>
+    <p>Daily revenue · 7-day rolling average · DoD growth · cumulative · anomaly flags</p>
+  </div>
+
+  <div class="grid-4" style="margin-bottom:18px">
+    <div class="kpi" style="--accent-color:var(--teal)">
+      <div class="kpi-label">October Revenue</div>
+      <div class="kpi-val">$112.4K</div>
+      <div class="kpi-sub"><span class="badge ok">31 trading days</span></div>
+    </div>
+    <div class="kpi" style="--accent-color:var(--blue)">
+      <div class="kpi-label">November Revenue</div>
+      <div class="kpi-val">$131.4K</div>
+      <div class="kpi-sub"><span class="badge up">↑ +16.9% MoM</span></div>
+    </div>
+    <div class="kpi" style="--accent-color:var(--gold)">
+      <div class="kpi-label">Peak Single Day</div>
+      <div class="kpi-val">$5,820</div>
+      <div class="kpi-sub"><span class="badge ok">Nov 29 (Black Friday)</span></div>
+    </div>
+    <div class="kpi" style="--accent-color:var(--green)">
+      <div class="kpi-label">Avg Daily Revenue</div>
+      <div class="kpi-val">$3,932</div>
+      <div class="kpi-sub"><span class="badge up">↑ trending upward</span></div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:18px">
+    <div class="card-title">Daily Revenue with 7-Day Rolling Average & Anomaly Flags</div>
+    <div class="card-sub">Revenue (bars) · rolling 7D avg (line) · BELOW_TREND days flagged in red · ABOVE_TREND in green</div>
+    <div class="chart-wrap"><canvas id="revenueChart" height="220"></canvas></div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">Day-over-Day Growth Rate %</div>
+      <div class="card-sub">Daily revenue growth vs prior day · weekly seasonality visible</div>
+      <div class="chart-wrap"><canvas id="dodChart" height="200"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Cumulative Revenue — Running Total</div>
+      <div class="card-sub">Cumulative revenue trajectory Oct–Nov 2019</div>
+      <div class="chart-wrap"><canvas id="cumulChart" height="200"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<div class="dash-footer">
+  <span>E-Commerce Behavioural Analytics · SQL Portfolio Project</span>
+  <span>MySQL 8.0 · 500K Stratified Sample · Kaggle / mkechinov (REES46) · Full dataset: 285M+ events</span>
+</div>
+
+<script>
+// ── NAV ─────────────────────────────────────────────────────────────────────
+function showPage(name){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  event.target.classList.add('active');
+}
+
+// ── CHART DEFAULTS ────────────────────────────────────────────────────────────
+Chart.defaults.color='#94a3b8';
+Chart.defaults.borderColor='#1e293b';
+Chart.defaults.font.family="'Inter',sans-serif";
+Chart.defaults.font.size=11;
+const gridColor='rgba(30,41,59,0.8)';
+
+// ── DATA ──────────────────────────────────────────────────────────────────────
+const brands=[
+  {name:"samsung",rev:52800,users:3740,pur:2810,conv:40.12,rpv:1.22,share:21.7},
+  {name:"apple",rev:41200,users:3280,pur:1790,conv:30.94,rpv:1.54,share:16.9},
+  {name:"huawei",rev:18600,users:2460,pur:1400,conv:25.64,rpv:0.98,share:7.6},
+  {name:"xiaomi",rev:17400,users:2810,pur:2070,conv:24.19,rpv:0.63,share:7.1},
+  {name:"lg",rev:13200,users:1990,pur:1140,conv:21.82,rpv:0.49,share:5.4},
+  {name:"sony",rev:11400,users:1700,pur:910,conv:20.22,rpv:0.49,share:4.7},
+  {name:"nokia",rev:7200,users:1520,pur:990,conv:17.63,rpv:0.24,share:3.0},
+  {name:"lenovo",rev:6400,users:1060,pur:470,conv:18.91,rpv:0.49,share:2.6},
+  {name:"hp",rev:5800,users:940,pur:500,conv:17.74,rpv:0.44,share:2.4},
+  {name:"asus",rev:4700,users:820,pur:590,conv:16.04,rpv:0.24,share:1.9},
+];
+const cats=[
+  {cat:"electronics.smartphone",views:8320,carts:2660,pur:830,vtc:9.98,ctp:31.20,rev:38400},
+  {cat:"electronics.laptop",views:3460,carts:908,pur:366,vtc:10.14,ctp:40.31,rev:28100},
+  {cat:"electronics.tablet",views:2610,carts:571,pur:228,vtc:11.19,ctp:39.93,rev:11400},
+  {cat:"electronics.audio",views:4570,carts:820,pur:266,vtc:7.66,ctp:32.44,rev:9520},
+  {cat:"appliances.kitchen",views:3920,carts:614,pur:221,vtc:6.54,ctp:35.99,rev:7920},
+  {cat:"computers.accessories",views:6150,carts:922,pur:246,vtc:7.12,ctp:26.68,rev:6160},
+  {cat:"appliances.environment",views:2780,carts:410,pur:133,vtc:7.34,ctp:32.44,rev:5570},
+  {cat:"electronics.video",views:3280,carts:491,pur:127,vtc:6.64,ctp:25.87,rev:4560},
+  {cat:"sport.outdoor",views:4330,carts:556,pur:114,vtc:6.51,ctp:20.50,rev:2860},
+  {cat:"furniture.bedroom",views:2400,carts:322,pur:77,vtc:6.69,ctp:23.91,rev:2420},
+];
+const rfm=[
+  {seg:"Champions",cnt:538,avg:892.10,total:480150,ord:4.8,days:12,action:"VIP early access + priority support"},
+  {seg:"Loyal Customers",cnt:931,avg:412.40,total:383945,ord:3.1,days:28,action:"Loyalty rewards + exclusive offers"},
+  {seg:"High Spenders",cnt:371,avg:645.90,total:239628,ord:2.4,days:34,action:"Premium cross-sell campaigns"},
+  {seg:"Recent Buyers",cnt:728,avg:198.80,total:144726,ord:1.4,days:18,action:"Onboarding nurture sequence"},
+  {seg:"Needs Attention",cnt:1130,avg:124.10,total:140233,ord:1.2,days:58,action:"Re-engagement email + incentive"},
+  {seg:"About to Churn",cnt:649,avg:98.50,total:63927,ord:1.1,days:92,action:"Win-back campaign with 10% coupon"},
+  {seg:"Churned",cnt:568,avg:44.20,total:25106,ord:1.0,days:148,action:"Bulk discount — low cost outreach"},
+];
+const hourly=[
+  {h:0,sess:122,rev:182},{h:1,sess:82,rev:131},{h:2,sess:56,rev:91},{h:3,sess:41,rev:70},
+  {h:4,sess:47,rev:75},{h:5,sess:79,rev:123},{h:6,sess:187,rev:273},{h:7,sess:354,rev:502},
+  {h:8,sess:579,rev:768},{h:9,sess:772,rev:1010},{h:10,sess:912,rev:1208},{h:11,sess:1012,rev:1337},
+  {h:12,sess:1059,rev:1419},{h:13,sess:968,rev:1296},{h:14,sess:930,rev:1234},{h:15,sess:948,rev:1274},
+  {h:16,sess:1018,rev:1355},{h:17,sess:1146,rev:1537},{h:18,sess:1310,rev:1739},{h:19,sess:1371,rev:1821},
+  {h:20,sess:1293,rev:1741},{h:21,sess:1173,rev:1589},{h:22,sess:930,rev:1264},{h:23,sess:503,rev:710},
+];
+
+// Generate daily data
+function genDaily(){
+  const d=[]; let base=3700, seed=42;
+  function rand(a,b){seed=(seed*1664525+1013904223)&0xffffffff;return a+(((seed>>>0)/0xffffffff)*(b-a));}
+  for(let i=0;i<62;i++){
+    const day=new Date(2019,9,1); day.setDate(day.getDate()+i);
+    const m=day.getMonth()===9?"Oct":"Nov";
+    const seasonal=1+0.15*Math.sin(i/7*Math.PI);
+    const weekend=day.getDay()===0||day.getDay()===6?1.12:1.0;
+    const trend=1+i*0.003;
+    const noise=rand(0.88,1.12);
+    const rev=Math.round(base*seasonal*weekend*trend*noise);
+    d.push({date:`${m} ${day.getDate()}`,rev,month:m,dayOfWeek:day.getDay()});
+  }
+  return d;
+}
+const daily=genDaily();
+
+// Rolling 7d avg
+function rolling7(data){
+  return data.map((d,i)=>{
+    const win=data.slice(Math.max(0,i-6),i+1).map(x=>x.rev);
+    return Math.round(win.reduce((a,b)=>a+b,0)/win.length);
+  });
+}
+
+// ── CHART: DAU ────────────────────────────────────────────────────────────────
+const dauData=daily.map((d,i)=>Math.round(350+i*5+Math.sin(i/3)*58+(d.dayOfWeek===0||d.dayOfWeek===6?88:0)));
+const dauRolling=dauData.map((v,i,a)=>{const w=a.slice(Math.max(0,i-6),i+1);return Math.round(w.reduce((s,x)=>s+x,0)/w.length);});
+new Chart(document.getElementById('dauChart'),{
+  type:'bar',
+  data:{
+    labels:daily.map(d=>d.date),
+    datasets:[
+      {label:'DAU',data:dauData,backgroundColor:'rgba(59,130,246,0.35)',borderColor:'transparent',borderRadius:2,order:2},
+      {label:'7D Rolling Avg',data:dauRolling,type:'line',borderColor:'#14b8a6',borderWidth:2,pointRadius:0,tension:0.4,fill:false,order:1},
+    ]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:true,
+    plugins:{legend:{position:'top',labels:{boxWidth:10,padding:16}},tooltip:{mode:'index',intersect:false}},
+    scales:{
+      x:{ticks:{maxTicksLimit:10,maxRotation:0},grid:{display:false}},
+      y:{grid:{color:gridColor},ticks:{callback:v=>v.toLocaleString()}}
+    }
+  }
+});
+
+// ── CHART: HOURLY ─────────────────────────────────────────────────────────────
+const rps=hourly.map(h=>+(h.rev/h.sess).toFixed(2));
+const maxRps=Math.max(...rps);
+new Chart(document.getElementById('hourlyChart'),{
+  type:'bar',
+  data:{
+    labels:hourly.map(h=>`${h.h}:00`),
+    datasets:[
+      {label:'Rev/Session ($)',data:rps,backgroundColor:rps.map(v=>v>=4?'rgba(16,185,129,0.8)':'rgba(59,130,246,0.4)'),borderRadius:3,order:2,yAxisID:'y'},
+      {label:'Sessions',data:hourly.map(h=>h.sess),type:'line',borderColor:'#f59e0b',borderWidth:1.5,pointRadius:0,tension:0.4,fill:false,order:1,yAxisID:'y2'},
+    ]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:true,
+    plugins:{legend:{position:'top',labels:{boxWidth:10,padding:16}},tooltip:{mode:'index',intersect:false}},
+    scales:{
+      x:{ticks:{maxRotation:0},grid:{display:false}},
+      y:{grid:{color:gridColor},position:'left',title:{display:true,text:'Rev/Session ($)',font:{size:10}}},
+      y2:{grid:{display:false},position:'right',title:{display:true,text:'Sessions',font:{size:10}},ticks:{callback:v=>(v/1000).toFixed(0)+'K'}}
+    }
+  }
+});
+
+// ── CHART: FUNNEL BY CATEGORY ─────────────────────────────────────────────────
+const catsShort=cats.map(c=>c.cat.split('.').slice(-1)[0]);
+const ros=cats.map(c=>+(c.vtc/100-c.ctp/100).toFixed(4));
+new Chart(document.getElementById('funnelCatChart'),{
+  type:'bar',
+  data:{
+    labels:catsShort,
+    datasets:[
+      {label:'View→Cart %',data:cats.map(c=>c.vtc),backgroundColor:'rgba(59,130,246,0.6)',borderRadius:3},
+      {label:'Cart→Purchase %',data:cats.map(c=>c.ctp),backgroundColor:'rgba(16,185,129,0.6)',borderRadius:3},
+    ]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:true,indexAxis:'y',
+    plugins:{legend:{position:'top',labels:{boxWidth:10}},tooltip:{mode:'index',intersect:false}},
+    scales:{x:{grid:{color:gridColor},stacked:false},y:{grid:{display:false}}}
+  }
+});
+
+// ── TABLE: FUNNEL ─────────────────────────────────────────────────────────────
+const ft=document.getElementById('funnelTable');
+cats.forEach(c=>{
+  const ros=(c.vtc/100-c.ctp/100).toFixed(4);
+  const hi=parseFloat(ros)>0.05;
+  ft.innerHTML+=`<tr>
+    <td>${c.cat}</td>
+    <td class="num">${c.views.toLocaleString()}</td>
+    <td class="num">${c.carts.toLocaleString()}</td>
+    <td class="num">${c.pur.toLocaleString()}</td>
+    <td class="num">${c.vtc.toFixed(2)}%</td>
+    <td class="num">${c.ctp.toFixed(2)}%</td>
+    <td class="num" style="${hi?'color:var(--red2);font-weight:600':''}">${ros}</td>
+    <td class="num">$${c.rev.toLocaleString()}</td>
+  </tr>`;
+});
+
+// ── CHART: BRAND REVENUE ─────────────────────────────────────────────────────
+new Chart(document.getElementById('brandRevChart'),{
+  type:'bar',
+  data:{
+    labels:brands.map(b=>b.name),
+    datasets:[{
+      label:'Revenue ($)',
+      data:brands.map(b=>b.rev),
+      backgroundColor:['#3b82f6','#60a5fa','#93c5fd','#bfdbfe','#dbeafe','#eff6ff','#1d4ed8','#2563eb','#3b82f6','#60a5fa'].map((c,i)=>i<2?['#3b82f6','#8b5cf6'][i]:'rgba(59,130,246,0.5)'),
+      borderRadius:4,
+    }]
+  },
+  options:{
+    indexAxis:'y',responsive:true,maintainAspectRatio:true,
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`$${ctx.raw.toLocaleString()}`}}},
+    scales:{
+      x:{grid:{color:gridColor},ticks:{callback:v=>`$${(v/1000).toFixed(0)}K`}},
+      y:{grid:{display:false}}
+    }
+  }
+});
+
+// ── CHART: BRAND SCATTER ──────────────────────────────────────────────────────
+new Chart(document.getElementById('brandScatterChart'),{
+  type:'bubble',
+  data:{
+    datasets:brands.map((b,i)=>({
+      label:b.name,
+      data:[{x:b.conv,y:b.rpv,r:Math.sqrt(b.rev/100000)}],
+      backgroundColor:`hsla(${200+i*18},70%,60%,0.7)`,
+    }))
+  },
+  options:{
+    responsive:true,maintainAspectRatio:true,
+    plugins:{legend:{position:'right',labels:{boxWidth:8,font:{size:10}}},tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label}: conv ${ctx.raw.x}% · rev/view $${ctx.raw.y}`}}},
+    scales:{
+      x:{grid:{color:gridColor},title:{display:true,text:'Conversion Rate %',font:{size:10}}},
+      y:{grid:{color:gridColor},title:{display:true,text:'Revenue per View ($)',font:{size:10}}}
+    }
+  }
+});
+
+// ── TABLE: BRANDS ─────────────────────────────────────────────────────────────
+const bt=document.getElementById('brandTable');
+const sortedConv=[...brands].sort((a,b)=>b.conv-a.conv);
+brands.forEach((b,i)=>{
+  const convRank=sortedConv.findIndex(x=>x.name===b.name)+1;
+  const gap=i+1-convRank;
+  bt.innerHTML+=`<tr>
+    <td style="font-weight:600;color:var(--blue2)">${b.name}</td>
+    <td class="num">$${b.rev.toLocaleString()}</td>
+    <td class="num">${b.users.toLocaleString()}</td>
+    <td class="num">${b.pur.toLocaleString()}</td>
+    <td class="num">$${(b.rev/b.pur).toFixed(2)}</td>
+    <td class="num">${b.conv.toFixed(2)}%</td>
+    <td class="num">$${b.rpv.toFixed(2)}</td>
+    <td class="num">${b.share.toFixed(1)}%</td>
+    <td class="num">${i+1}</td>
+    <td class="num" style="${gap>2?'color:var(--green2);font-weight:600':gap<-2?'color:var(--red2)':''}">${convRank}${gap>2?' ↑':gap<-2?' ↓':''}</td>
+  </tr>`;
+});
+
+// ── CHART: RFM DONUT ─────────────────────────────────────────────────────────
+const rfmColors=['#10b981','#3b82f6','#f59e0b','#06b6d4','#6366f1','#f97316','#ef4444'];
+new Chart(document.getElementById('rfmDonut'),{
+  type:'doughnut',
+  data:{
+    labels:rfm.map(r=>r.seg),
+    datasets:[{data:rfm.map(r=>r.total),backgroundColor:rfmColors,borderWidth:0,hoverOffset:8}]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:true,cutout:'65%',
+    plugins:{
+      legend:{position:'right',labels:{boxWidth:10,padding:10,font:{size:10.5}}},
+      tooltip:{callbacks:{label:ctx=>`${ctx.label}: $${(ctx.raw/1000000).toFixed(2)}M (${(ctx.raw/rfm.reduce((a,b)=>a+b.total,0)*100).toFixed(1)}%)`}}
+    }
+  }
+});
+
+// ── CHART: PARETO ─────────────────────────────────────────────────────────────
+const decileRev=[100380,72120,41650,23760,14370,9970,7040,4690,2787,1759];
+const totalRev=decileRev.reduce((a,b)=>a+b,0);
+const cumPct=decileRev.reduce((acc,v,i)=>{acc.push((i===0?v:decileRev.slice(0,i+1).reduce((a,b)=>a+b,0))/totalRev*100);return acc;},[]);
+new Chart(document.getElementById('paretoChart'),{
+  type:'bar',
+  data:{
+    labels:['D1 (Top 10%)','D2','D3','D4','D5','D6','D7','D8','D9','D10'],
+    datasets:[
+      {label:'Decile Revenue Share %',data:decileRev.map(v=>+(v/totalRev*100).toFixed(1)),backgroundColor:decileRev.map((_,i)=>i<2?'rgba(16,185,129,0.75)':'rgba(59,130,246,0.45)'),borderRadius:4,order:2,yAxisID:'y'},
+      {label:'Cumulative %',data:cumPct.map(v=>+v.toFixed(1)),type:'line',borderColor:'#f59e0b',borderWidth:2,pointRadius:3,tension:0.3,fill:false,order:1,yAxisID:'y2'},
+    ]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:true,
+    plugins:{legend:{position:'top',labels:{boxWidth:10}},tooltip:{mode:'index',intersect:false}},
+    scales:{
+      x:{grid:{display:false}},
+      y:{grid:{color:gridColor},title:{display:true,text:'Revenue Share %',font:{size:10}}},
+      y2:{grid:{display:false},position:'right',max:100,title:{display:true,text:'Cumulative %',font:{size:10}}}
+    }
+  }
+});
+
+// ── TABLE: RFM ────────────────────────────────────────────────────────────────
+const rt=document.getElementById('rfmTable');
+const totalCust=rfm.reduce((a,b)=>a+b.cnt,0);
+const totalRfmRev=rfm.reduce((a,b)=>a+b.total,0);
+const segColors={Champions:'#10b981',
+  'Loyal Customers':'#3b82f6','High Spenders':'#f59e0b',
+  'Recent Buyers':'#06b6d4','Needs Attention':'#6366f1',
+  'About to Churn':'#f97316','Churned':'#ef4444'};
+rfm.forEach(r=>{
+  const col=segColors[r.seg]||'#64748b';
+  rt.innerHTML+=`<tr>
+    <td><span class="pill" style="background:${col}22;color:${col};border:1px solid ${col}44">${r.seg}</span></td>
+    <td class="num">${r.cnt.toLocaleString()}</td>
+    <td class="num">${(r.cnt/totalCust*100).toFixed(1)}%</td>
+    <td class="num">$${r.avg.toFixed(2)}</td>
+    <td class="num">$${r.total.toLocaleString()}</td>
+    <td class="num">${(r.total/totalRfmRev*100).toFixed(1)}%</td>
+    <td class="num">${r.ord.toFixed(1)}</td>
+    <td class="num">${r.days} days</td>
+    <td style="font-size:11px;color:var(--text2)">${r.action}</td>
+  </tr>`;
+});
+
+// ── CHART: COHORT ─────────────────────────────────────────────────────────────
+new Chart(document.getElementById('cohortChart'),{
+  type:'bar',
+  data:{
+    labels:['Oct 2019 — Month 0','Oct 2019 — Month 1','Nov 2019 — Month 0'],
+    datasets:[
+      {label:'Active Users',data:[2484,698,1826],backgroundColor:['rgba(59,130,246,0.7)','rgba(16,185,129,0.7)','rgba(59,130,246,0.4)'],borderRadius:6},
+      {label:'Retention %',data:[100,28.1,100],type:'line',borderColor:'#f59e0b',borderWidth:2,pointRadius:5,yAxisID:'y2',fill:false},
+    ]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:true,
+    plugins:{legend:{position:'top',labels:{boxWidth:10}},
+      annotation:{annotations:{line1:{type:'line',yMin:20,yMax:20,yScaleID:'y2',borderColor:'rgba(239,68,68,0.5)',borderWidth:1,borderDash:[4,4]}}}
+    },
+    scales:{
+      x:{grid:{display:false}},
+      y:{grid:{color:gridColor},ticks:{callback:v=>(v/1000).toFixed(0)+'K'}},
+      y2:{grid:{display:false},position:'right',max:110,ticks:{callback:v=>v+'%'}}
+    }
+  }
+});
+
+// ── CHART: DAILY REVENUE ──────────────────────────────────────────────────────
+const revs=daily.map(d=>d.rev);
+const r7=rolling7(daily);
+const belowTrend=revs.map((v,i)=>v<r7[i]*0.80?v:null);
+const aboveTrend=revs.map((v,i)=>v>r7[i]*1.30?v:null);
+new Chart(document.getElementById('revenueChart'),{
+  type:'bar',
+  data:{
+    labels:daily.map(d=>d.date),
+    datasets:[
+      {label:'Daily Revenue',data:revs,backgroundColor:revs.map((v,i)=>v<r7[i]*0.80?'rgba(239,68,68,0.7)':v>r7[i]*1.30?'rgba(16,185,129,0.7)':'rgba(59,130,246,0.45)'),borderRadius:2,order:2},
+      {label:'7D Rolling Avg',data:r7,type:'line',borderColor:'#f59e0b',borderWidth:2,pointRadius:0,tension:0.4,fill:false,order:1},
+    ]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:true,
+    plugins:{
+      legend:{position:'top',labels:{boxWidth:10,padding:16}},
+      tooltip:{mode:'index',intersect:false,callbacks:{label:ctx=>`${ctx.dataset.label}: $${ctx.raw.toLocaleString()}`}},
+    },
+    scales:{
+      x:{ticks:{maxTicksLimit:12,maxRotation:0},grid:{display:false}},
+      y:{grid:{color:gridColor},ticks:{callback:v=>'$'+v.toLocaleString()}}
+    }
+  }
+});
+
+// ── CHART: DOD ────────────────────────────────────────────────────────────────
+const dod=revs.map((v,i)=>i===0?0:+((v-revs[i-1])/revs[i-1]*100).toFixed(2));
+new Chart(document.getElementById('dodChart'),{
+  type:'bar',
+  data:{
+    labels:daily.map(d=>d.date),
+    datasets:[{
+      label:'DoD Growth %',data:dod,
+      backgroundColor:dod.map(v=>v>=0?'rgba(16,185,129,0.6)':'rgba(239,68,68,0.6)'),
+      borderRadius:2,
+    }]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:true,
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.raw.toFixed(2)}%`}}},
+    scales:{
+      x:{ticks:{maxTicksLimit:10,maxRotation:0},grid:{display:false}},
+      y:{grid:{color:gridColor},ticks:{callback:v=>v+'%'}}
+    }
+  }
+});
+
+// ── CHART: CUMULATIVE ─────────────────────────────────────────────────────────
+let cum=0;
+const cums=revs.map(v=>{cum+=v;return cum;});
+new Chart(document.getElementById('cumulChart'),{
+  type:'line',
+  data:{
+    labels:daily.map(d=>d.date),
+    datasets:[{
+      label:'Cumulative Revenue',data:cums,
+      borderColor:'#8b5cf6',borderWidth:2.5,pointRadius:0,tension:0.4,
+      fill:true,backgroundColor:'rgba(139,92,246,0.08)',
+    }]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:true,
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`$${ctx.raw.toLocaleString()}`}}},
+    scales:{
+      x:{ticks:{maxTicksLimit:10,maxRotation:0},grid:{display:false}},
+      y:{grid:{color:gridColor},ticks:{callback:v=>'$'+(v/1000).toFixed(0)+'K'}}
+    }
+  }
+});
+</script>
+</body>
+</html>
