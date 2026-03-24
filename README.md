@@ -116,17 +116,19 @@ Steps:
 * Customer segmentation
 * Revenue trends
 
+#### Dashboard Preview
+
+! [Executive Dashboard] (images/overview.png)
+! [Funnel Analysis] (images/funnel.png)
+
+#### Download Full Dashboard
+
+Due to file size limitations, download the dashboard here: 
+👉 https://drive.google.com/file/d/1CcyOMvv9VQosk5CwDSBHSbEGOwbustH2/view?usp=drive_link
+
 ### HTML Interactive Dashboard
 
 Custom-built dashboard using Chart.js to simulate product analytics UI.
-
----
-
-## 📸 Dashboard Preview
-
-![Overview](images/overview.png)
-![Funnel](images/funnel.png)
-![RFM](images/rfm.png)
 
 ---
 
